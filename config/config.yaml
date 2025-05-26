@@ -1,0 +1,8 @@
+server_polling_port: 8080
+device_id: client_001
+protocols_to_monitor:
+  - TCP
+  - UDP
+  - ICMP
+packet_analysis_duration_seconds: 5
+max_external_ips_to_store: 20
