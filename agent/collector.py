@@ -11,7 +11,7 @@ def collect_network_metrics(config):
     incoming_traffic = io_counters.bytes_recv
     outgoing_traffic = io_counters.bytes_sent
     active_tcp = sum(1 for conn in connections if conn.status == "ESTABLISHED" and conn.type == socket.SOCK_STREAM)
-    active_udp = sum(1 for conn in connections if conn.status == "ESTABLISHED" and conn.type == socket.SOCK_DGRAM)
+    active_udp = sum(1 for conn in connections if conn.type == socket.SOCK_DGRAM)
 
     packet_info = sniff(timeout=config.get("packet_analysis_duration_seconds", 5), prn=lambda x: x.summary())
 
