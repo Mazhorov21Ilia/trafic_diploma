@@ -1,45 +1,34 @@
+import threading
 from flask import Flask, jsonify
-import argparse
-import socket
-from collector import collect_network_metrics
+from agent.collector import start_background_sniffer, collect_network_metrics
+from config import load_config
 
+config = load_config()
 
 app = Flask(__name__)
+
+sniffer_thread = threading.Thread(target=start_background_sniffer, daemon=True)
+sniffer_thread.start()
 
 
 @app.route("/metrics", methods=["GET"])
 def metrics():
     try:
         metrics_data = collect_network_metrics(config)
+
         return jsonify(metrics_data), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("10.255.255.255", 1))
-        ip = s.getsockname()[0]
-    except Exception:
-        ip = "127.0.0.1"
-    finally:
-        s.close()
-    return ip
+def run_agent():
+    host_ip = "0.0.0.0"
+    port = config.get("server_polling_port", 8080)
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Traffic Monitoring Agent")
-    parser.add_argument("--port", type=int, help="Port to run the agent HTTP server")
-    return parser.parse_args()
+    print(f"Запущен агент учёта трафика на http://{host_ip}:{port}/metrics")
+    app.run(host=host_ip, port=port)
 
 
 if __name__ == "__main__":
-    from config_m import load_config
-    config = load_config()
-
-    args = parse_args()
-    port = args.port if args.port else config.get("server_polling_port", 8080)
-
-    print(f"Starting Traffic Agent on http://{get_local_ip()}:{port}/metrics")
-    app.run(host="0.0.0.0", port=port)
+    run_agent()
