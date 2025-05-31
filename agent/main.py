@@ -1,7 +1,7 @@
 import threading
 from flask import Flask, jsonify
-from agent.collector import start_background_sniffer, collect_network_metrics
-from config import load_config
+from collector import start_background_sniffer, collect_network_metrics
+from config_m import load_config
 
 config = load_config()
 

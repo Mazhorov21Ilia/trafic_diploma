@@ -2,7 +2,7 @@ import os
 import yaml
 
 
-def load_config(config_path="/home/sarah/Desktop/trafic_diploma/config/config.yaml"):
+def load_config(config_path="config/config.yaml"):
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Не найден файл {config_path}")
 
