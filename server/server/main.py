@@ -4,7 +4,6 @@ import requests
 import time
 from apscheduler.schedulers.background import BackgroundScheduler
 from influxdb import InfluxDBClient
-from server.config import load_config
 
 
 def init_influxdb(config):
@@ -99,6 +98,7 @@ def start_polling(config):
     def job():
         for client_url in clients:
             metrics = poll_client(client_url)
+            print(metrics)
             if metrics:
                 send_to_influxdb(influx_client, metrics)
 

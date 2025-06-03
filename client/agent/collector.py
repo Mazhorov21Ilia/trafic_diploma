@@ -6,7 +6,8 @@ import socket
 
 packet_buffer = deque(maxlen=10000)
 last_cleanup_time = time.time()
-
+incoming_tr = 0
+outcoming_tr = 0
 def packet_handler(pkt):
     global packet_buffer, last_cleanup_time
     
@@ -47,7 +48,7 @@ def analyze_ip_traffic():
     return ip_stats
 
 def collect_network_metrics(config):
-    global last_cleanup_time
+    global last_cleanup_time, incoming_tr, outcoming_tr
     
     current_time = time.time()
     
@@ -59,17 +60,22 @@ def collect_network_metrics(config):
     io_counters = psutil.net_io_counters()
     connections = psutil.net_connections()
 
+
+
     metrics = {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "device_id": config.get("device_id", "unknown_device"),
-        "incoming_traffic": io_counters.bytes_recv,
-        "outgoing_traffic": io_counters.bytes_sent,
+        "incoming_traffic": io_counters.bytes_recv - incoming_tr,
+        "outgoing_traffic": io_counters.bytes_sent - outcoming_tr,
         "active_tcp_connections": sum(1 for conn in connections if conn.status == "ESTABLISHED" and conn.type == socket.SOCK_STREAM),
         "active_udp_connections": sum(1 for conn in connections if conn.type == socket.SOCK_DGRAM),
     }
-    
+
+    incoming_tr = io_counters.bytes_recv
+    outcoming_tr = io_counters.bytes_sent
+
     metrics["ip_traffic"] = analyze_ip_traffic()
-    
+
     return metrics
 
 
