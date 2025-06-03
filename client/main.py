@@ -26,7 +26,7 @@ def run_agent():
     host_ip = "0.0.0.0"
     port = config.get("server_polling_port", 8080)
 
-    print(f"Запущен агент учёта трафика на http://{host_ip}:{port}/metrics")
+    # print(f"Start on http://{host_ip}:{port}/metrics")
     app.run(host=host_ip, port=port)
 
 
