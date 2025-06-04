@@ -1,15 +1,17 @@
 import psutil
 import time
-from scapy.all import sniff, IP, TCP, UDP, ICMP
-from collections import deque
+from scapy.all import sniff, IP
+from collections import deque, defaultdict
 import socket
 
 packet_buffer = deque(maxlen=10000)
 last_cleanup_time = time.time()
-incoming_tr = 0
-outcoming_tr = 0
+
+incoming_tr = psutil.net_io_counters().bytes_recv
+outcoming_tr = psutil.net_io_counters().bytes_recv
+
 def packet_handler(pkt):
-    global packet_buffer, last_cleanup_time
+    global packet_buffer
     
     current_time = time.time()
     
@@ -20,7 +22,7 @@ def packet_handler(pkt):
         packet_buffer.append(pkt)
 
 def start_background_sniffer():
-    bpf_filter = "tcp or udp or icmp"
+    bpf_filter = "tcp or udp"
     
     sniff(
         prn=packet_handler,
@@ -28,24 +30,27 @@ def start_background_sniffer():
         filter=bpf_filter
     )
 
-def analyze_ip_traffic():
-    ip_stats = {}
-    
+def aggregate_ip_traffic():
+    traffic = defaultdict(lambda: {"sent": 0, "received": 0})
+
     for pkt in packet_buffer:
         if IP in pkt:
             src_ip = pkt[IP].src
             dst_ip = pkt[IP].dst
-            pkt_size = len(pkt)
-            
-            if src_ip not in ip_stats:
-                ip_stats[src_ip] = {"sent": 0, "received": 0}
-            ip_stats[src_ip]["sent"] += pkt_size
-            
-            if dst_ip not in ip_stats:
-                ip_stats[dst_ip] = {"sent": 0, "received": 0}
-            ip_stats[dst_ip]["received"] += pkt_size
-    
-    return ip_stats
+            size = len(pkt)
+
+            traffic[src_ip]["sent"] += size
+            traffic[dst_ip]["received"] += size
+
+    ip_stats = []
+    for ip, stats in traffic.items():
+        stats["total"] = stats["sent"] + stats["received"]
+        stats["ip_address"] = ip
+        ip_stats.append(stats)
+
+    ip_stats.sort(key=lambda x: x["total"], reverse=True)
+    return ip_stats[:5]
+
 
 def collect_network_metrics(config):
     global last_cleanup_time, incoming_tr, outcoming_tr
@@ -53,7 +58,7 @@ def collect_network_metrics(config):
     current_time = time.time()
     
     if current_time - last_cleanup_time > 5:
-        while packet_buffer and current_time - packet_buffer[0].time > 15:
+        while packet_buffer and current_time - packet_buffer[0].time > config.get("packet_buffer_duration"):
             packet_buffer.popleft()
         last_cleanup_time = current_time
 
@@ -74,9 +79,11 @@ def collect_network_metrics(config):
     incoming_tr = io_counters.bytes_recv
     outcoming_tr = io_counters.bytes_sent
 
-    metrics["ip_traffic"] = analyze_ip_traffic()
+    metrics["ip_traffic"] = aggregate_ip_traffic()
 
     return metrics
 
-
-print()
+# sniffer_thread = threading.Thread(target=start_background_sniffer, daemon=True)
+# sniffer_thread.start()
+#
+# print(collect_network_metrics(load_config()))

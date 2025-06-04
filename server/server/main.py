@@ -60,16 +60,17 @@ def send_to_influxdb(client, metrics):
     points = [base_metric]
 
     ip_traffic = metrics.get("ip_traffic", {})
-    for ip, stats in ip_traffic.items():
+    for item in ip_traffic:
         ip_metric = {
             "measurement": "ip_traffic",
             "tags": {
                 "device_id": device_id,
-                "ip_address": ip
+                "ip_address": item.get("ip_address")
             },
             "fields": {
-                "sent": stats.get("sent", 0),
-                "received": stats.get("received", 0)
+                "sent": item.get("sent", 0),
+                "received": item.get("received", 0),
+                "total": item.get("total", 0)
             }
         }
 
@@ -98,7 +99,6 @@ def start_polling(config):
     def job():
         for client_url in clients:
             metrics = poll_client(client_url)
-            print(metrics)
             if metrics:
                 send_to_influxdb(influx_client, metrics)
 

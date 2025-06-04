@@ -1,7 +1,7 @@
 import threading
 from flask import Flask, jsonify
 from agent.collector import start_background_sniffer, collect_network_metrics
-from agent.config_m import load_config
+from config.config_m import load_config
 
 config = load_config()
 
@@ -26,7 +26,6 @@ def run_agent():
     host_ip = "0.0.0.0"
     port = config.get("server_polling_port", 8080)
 
-    # print(f"Start on http://{host_ip}:{port}/metrics")
     app.run(host=host_ip, port=port)
 
 
